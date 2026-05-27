@@ -43,9 +43,9 @@
             transition: opacity 1.5s ease;
         }
 
-        /* 嵌入使用者提供的杜拜圖片網址 */
-        #bg-sunny { background-image: url('https://images.prodia.xyz/30784c.jpg'); opacity: 1; z-index: -3; }
-        #bg-rainy { background-image: url('https://images.prodia.xyz/307866.jpg'); opacity: 0; z-index: -2; }
+        /* 直接讀取你放在最外層的兩張杜拜晴雨圖片 */
+        #bg-sunny { background-image: url('image_0.png'); opacity: 1; z-index: -3; }
+        #bg-rainy { background-image: url('image_1.png'); opacity: 0; z-index: -2; }
 
         /* 雨滴持續動畫 */
         #rain-container {
@@ -328,7 +328,7 @@
         <div class="player-status-grid" id="status-grid"></div>
         
         <div class="game-status-bar" id="weather-bar">
-            🟢 當前氣候：正常藍天 (0 CF 最高)
+            🟢 當前氣候：正常藍天
         </div>
 
         <div class="home-action-zone">
