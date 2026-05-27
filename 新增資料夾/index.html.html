@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>《碳息生存戰》沉浸式系統</title>
+    <style>
+        :root {
+            --panel-bg: rgba(20, 20, 20, 0.9);
+            --panel-border: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --money-val: #f1c40f;
+            --cf-val: #e74c3c;
+            --primary: #3498db;
+            --success: #2ecc71;
+            --warning: #e67e22;
+            --danger: #c0392b;
+        }
+        
+        /* 基本佈局與手機優化 */
+        body {
+            font-family: 'PingFang TC', 'Arial', sans-serif;
+            margin: 0; padding: 0;
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            background-color: #333; /* 底色 */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 遊戲背景視圖 */
+        #background-view {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -2;
+            overflow: hidden;
+        }
+        
+        .bg-img {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+            transition: opacity 1.5s ease;
+        }
+
+        #bg-sunny { background-image: url('image_0.png'); opacity: 1; z-index: -3; }
+        #bg-rainy { background-image: url('image_1.png'); opacity: 0; z-index: -2; }
+
+        /* 雨滴持續動畫 */
+        #rain-container {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+        
+        .rain {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.3);
+            width: 2px;
+            height: 20px;
+            animation: rainDrop 1s infinite linear;
+        }
+
+        @keyframes rainDrop {
+            to { transform: translateY(100vh); }
+        }
+
+        /* 介面共用容器 */
+        .screen { display: none; width: 100%; height: 100%; box-sizing: border-box; flex-direction: column; align-items: center; text-align: center; position: relative; }
+        .active-screen { display: flex; }
+
+        h1 { margin: 20px 0 10px 0; font-size: 36px; text-shadow: 0 4px 6px rgba(0,0,0,0.6); }
+        .sub { color: #ccc; margin-bottom: 30px; font-size: 16px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+
+        button {
+            background: var(--primary); color: white; border: none; padding: 16px 24px; font-size: 20px; font-weight: bold;
+            border-radius: 12px; cursor: pointer; width: 80%; max-width: 300px; margin: 12px 0; transition: 0.2s; box-shadow: 0 6px 10px rgba(0,0,0,0.4);
+            outline: none;
+        }
+        button:active { transform: scale(0.96); }
+        button.btn-alt { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); }
+        button.btn-success { background: var(--success); }
+
+        /* --- 封面區 --- */
+        #screen-cover { justify-content: center; }
+
+        /* --- 設定區 --- */
+        #screen-setup { justify-content: center; }
+        .setup-panel { background: var(--panel-bg); border-radius: 20px; padding: 30px; width: 85%; max-width: 400px; border: 1px solid var(--panel-border); box-shadow: 0 10px 20px rgba(0,0,0,0.6); }
+
+        /* --- 抽角區 --- */
+        #screen-draw { justify-content: flex-start; padding-top: 50px; }
+        .card-carousel { display: flex; gap: 15px; margin: 30px 0; perspective: 1000px; padding: 0 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; box-sizing: border-box;}
+        .card-carousel::-webkit-scrollbar { display: none; } /* 手機隱藏滾動條 */
+        
+        .card-wrapper {
+            position: relative;
+            width: 150px; height: 210px; flex-shrink: 0;
+            transform-style: preserve-3d;
+            transition: transform 0.6s ease;
+            cursor: pointer;
+        }
+        
+        .card-wrapper.flipped { transform: rotateY(180deg); }
+        
+        .card-side {
+            position: absolute;
+            width: 100%; height: 100%;
+            border-radius: 16px;
+            display: flex; justify-content: center; align-items: center;
+            backface-visibility: hidden;
+            box-shadow: 0 8px 12px rgba(0,0,0,0.5);
+            border: 2px solid var(--panel-border);
+        }
+        
+        .card-back { background: radial-gradient(circle, #2a2a2a, #1a1a1a); font-size: 80px; transform: rotateY(0deg); }
+        .card-front { background: var(--panel-bg); transform: rotateY(180deg); flex-direction: column; padding: 15px; text-align: center;}
+        
+        .card-front .icon { font-size: 60px; margin-bottom: 10px; }
+        .card-front .name { font-size: 18px; font-weight: bold; }
+
+        @keyframes shuffle { 
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(20px); }
+            75% { transform: translateX(-20px); }
+        }
+
+        /* --- 遊戲主畫面 --- */
+        #screen-game { justify-content: flex-start; padding-top: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        
+        /* 頂部數據概覽卡片 */
+        .player-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; padding: 0 15px; width: 100%; box-sizing: border-box; margin-bottom: 30px; }
+        
+        .player-status-card {
+            background: var(--panel-bg); border-radius: 16px; padding: 15px; text-align: left;
+            border: 1px solid var(--panel-border); box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            cursor: pointer; transition: 0.3s;
+        }
+        .player-status-card:active { transform: scale(0.98); }
+        .player-status-card.eliminated { filter: grayscale(100%); opacity: 0.5; border-color: #555; }
+        
+        .p-card-top { display: flex; align-items: center; margin-bottom: 10px; }
+        .p-icon { font-size: 32px; margin-right: 10px; }
+        .p-info { flex: 1; }
+        .p-id { font-size: 12px; color: #bbb; }
+        .p-name { font-size: 16px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .p-stats { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; }
+        .p-stat { font-size: 18px; font-weight: bold; margin-bottom: 5px; display: flex; align-items: center;}
+        .p-stat .s-icon { font-size: 20px; margin-right: 8px;}
+        .p-money-val { color: var(--money-val); }
+        .p-cf-val { color: var(--cf-val); }
+
+        /* 遊戲狀態顯示 */
+        .game-status-bar { padding: 15px; color: #fff; font-size: 14px; margin-bottom: 20px; max-width: 400px; }
+
+        /* 首頁按鈕區 */
+        .home-action-zone { width: 100%; max-width: 400px; }
+
+        /* --- 底部操作彈窗 --- */
+        #bottom-panel {
+            position: fixed;
+            bottom: 0; left: 0; width: 100%; height: 75%;
+            background: var(--panel-bg); border-top-left-radius: 24px; border-top-right-radius: 24px;
+            border-top: 2px solid var(--panel-border);
+            z-index: 100;
+            display: none; flex-direction: column;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            transform: translateY(100%);
+            opacity: 0;
+            padding: 20px; box-sizing: border-box;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
+        }
+        
+        #bottom-panel.active { display: flex; transform: translateY(0); opacity: 1;}
+        
+        .panel-handle { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 3px; align-self: center; margin-bottom: 20px;}
+        .panel-close { position: absolute; top: 20px; right: 20px; font-size: 30px; cursor: pointer; color: #bbb;}
+
+        .active-p-info { margin-bottom: 15px; }
+        .active-p-name { font-size: 24px; font-weight: bold; display: flex; align-items: center;}
+        .active-p-icon { font-size: 40px; margin-right: 15px;}
+        .active-p-skill { font-size: 14px; color: #bbb; min-height: 40px;}
+
+        /* 輸入與操作區 */
+        .input-group { margin: 15px 0; display: flex; justify-content: center; }
+        input[type="number"] { width: 85%; padding: 18px; font-size: 28px; text-align: center; border-radius: 12px; border: none; background: rgba(255,255,255,0.1); color: #fff; font-weight: bold; outline: none; border: 1px solid var(--panel-border);}
+        
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 400px; margin: 0 auto;}
+        .btn-panel { font-size: 18px; padding: 14px; margin: 0;}
+        .btn-add-money { background: linear-gradient(135deg, #d4ac0d, #f1c40f); }
+        .btn-sub-money { background: linear-gradient(135deg, #9a7d0a, #d4ac0d); }
+        .btn-add-cf { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+        .btn-sub-cf { background: linear-gradient(135deg, #7b241c, #c0392b); }
+
+        /* 專屬技能按鈕 */
+        #skill-btn-zone { margin-top: 15px; display: none; }
+        .btn-philanthropist { background: linear-gradient(135deg, #2ecc71, #27ae60); animation: pulse 2s infinite; }
+
+        /* --- 全螢幕規則面板 --- */
+        #rule-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--panel-bg);
+            z-index: 200;
+            display: none; flex-direction: column;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+            padding: 30px; box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        #rule-overlay.active { display: flex; opacity: 1;}
+
+        .rule-close { position: fixed; bottom: 30px; right: 30px; font-size: 30px; cursor: pointer; color: #fff; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;}
+        
+        #rules-content { text-align: left; line-height: 1.6; font-size: 15px;}
+        #rules-content h2 { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-top: 30px;}
+        #rules-content h3 { color: var(--success); margin-top: 20px;}
+        #rules-content ul { padding-left: 20px;}
+        #rules-content b.money { color: var(--money-val); }
+        #rules-content b.cf { color: var(--cf-val); }
+
+        /* --- 特效層 --- */
+        #fx-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 999; display: none; justify-content: center; align-items: center; }
+        
+        /* 入獄特效 */
+        .jail-bars { width: 100%; height: 100%; background: repeating-linear-gradient(90deg, transparent, transparent 15%, #111 15%, #111 20%); animation: dropDown 0.5s ease forwards; position: absolute; }
+        .jail-text { font-size: 60px; color: red; font-weight: bold; text-shadow: 2px 2px 10px #000; z-index: 2; animation: stamp 0.5s ease forwards; }
+        
+        /* 淘汰特效 */
+        .death-overlay { width: 100%; height: 100%; background: rgba(255,0,0,0.3); animation: flash 0.5s 3; position: absolute; }
+        .skull { font-size: 120px; z-index: 2; animation: explode 1s forwards; text-shadow: 0 0 20px red; }
+
+        /* 淨化特效 */
+        .heal-fx { font-size: 80px; position: absolute; animation: floatUp 1.5s forwards; opacity: 0; }
+
+        /* 動畫特效定義 */
+        @keyframes dropDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+        @keyframes stamp { 0% { transform: scale(3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes flash { 0%, 100% { background: rgba(255,0,0,0); } 50% { background: rgba(255,0,0,0.5); } }
+        @keyframes explode { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); } 100% { transform: scale(3); opacity: 0; } }
+        @keyframes floatUp { 0% { transform: translateY(50px); opacity: 1; } 100% { transform: translateY(-150px); opacity: 0; } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(46, 204, 113, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); } }
+        
+        /* 半透明遮罩層 */
+        #overlay-shade {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5); display: none; z-index: 50;
+        }
+        #overlay-shade.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="background-view">
+        <div id="bg-sunny" class="bg-img"></div>
+        <div id="bg-rainy" class="bg-img"></div>
+        <div id="rain-container"></div>
+    </div>
+
+    <div id="fx-layer"></div>
+    
+    <div id="overlay-shade" onclick="closeBottomPanel()"></div>
+
+    <div id="rule-overlay">
+        <h2>📜 《碳息生存戰》V3 終極平衡版｜官方規則</h2>
+        <div id="rules-content">
+            <h3 style="color: var(--warning)">📖 遊戲背景</h3>
+            <p>這座城市因快時尚產業的過度製造逐漸走向崩潰。玩家將扮演不同社會角色，在金錢與碳排放之間掙扎求生。在這個世界裡，錢能讓你擴張，但碳排才是真正決定生死的東西。</p>
+            
+            <h3>⚖️ 勝負條件</h3>
+            <p>本遊戲採用「金錢」與「碳排放量（CF）」雙軌制。</p>
+            <ul>
+                <li><b class="money">💰 金錢：</b>購買、升級與行動資源</li>
+                <li><b class="cf">☠️ 碳排（CF）：</b>玩家生命值</li>
+            </ul>
+            <p>当玩家累積碳排達 <b class="cf">10,000 CF</b> 時，立即淘汰。<b>勝利條件：</b>成為最後存活、未爆碳出局的玩家。</p>
+
+            <h3>🏭 快時尚工廠系統（共 6 格）</h3>
+            <p>玩家踩到工廠地時，可購買或升級工廠。<b>地主保護：</b>地主踩到自己的工廠時，不會增加碳排。</p>
+            <ul>
+                <li><b>Level 1｜初級工廠</b><br>地主支付：<b class="money">$200</b> | 地主自身：<b class="cf">+500 CF</b> | 路人踩中：<b class="cf">+400 CF</b></li>
+                <li><b>Level 2｜中級工廠</b><br>地主支付：<b class="money">$300</b> | 地主自身：<b class="cf">+600 CF</b> | 路人踩中：<b class="cf">+700 CF</b></li>
+                <li><b>Level 3｜高級工廠</b><br>地主支付：<b class="money">$400</b> | 地主自身：<b class="cf">+800 CF</b> | 路人踩中：<b class="cf">+1,000 CF</b></li>
+                <li><b>👑 Level 4｜頂級工廠</b><br>無法直接升級。條件：必須先擁有高級工廠，再抽中特定機會／命運卡進化。效果：路人踩中時 <b class="cf">+1,500 CF</b></li>
+            </ul>
+
+            <h3>🚔 環保局（監獄）系統</h3>
+            <p>為防止玩家故意躲監獄避戰，監獄分為兩種入獄方式。</p>
+            <h4>軌道 A｜大自然的最後警告（僅一次）</h4>
+            <p>觸發條件：玩家碳排首次達到或超過 <b class="cf">7,000 CF</b>。效果：立即入獄 2 回合，無法領薪，工廠停工。唯一減碳機會：坐牢期間，每回合可支付 <b class="money">$200</b>（付錢：自身 <b class="cf">-500 CF</b> | 不付錢：不變化）。此警告一生僅此一次。</p>
+            <h4>軌道 B｜違規查緝入獄（事件卡）</h4>
+            <p>觸發條件：抽到「立即前往環保局」事件卡。效果：入獄 2 回合，無法領薪，工廠停工。無減碳福利。</p>
+
+            <h3>🛡️ 二手古著店（防禦護盾）</h3>
+            <p>購買條件：支付 <b class="money">$400</b> 可獲得一件古著護盾（一次性）。效果：下次踩到別人工廠時，可直接抵銷該次全部碳排傷害。</p>
+            
+            <h3>✈️ 飛機（航空站）</h3>
+            <p>效果：支付 <b class="money">$300</b>，可飛往任意格子。代價：自身 <b class="cf">+400 CF</b>。</p>
+            
+            <h3>🔹 其他功能格</h3>
+            <ul>
+                <li><b>🛢️ 石油格：</b>獲得 <b class="money">$500</b>，自身 <b class="cf">+1,000 CF</b>。</li>
+                <li><b>🛍️ 環保袋格：</b>自身 <b class="cf">-800 CF</b>。</li>
+                <li><b>❓ 機會／命運格：</b>抽取事件卡，可能效果包含碳排增減、金錢變動、工廠稅、強制入獄、進化工廠等。</li>
+            </ul>
+
+            <h3>👤 角色能力概覽</h3>
+            <p>老百姓($300/1間工廠上限，踩工廠CF傷-200)、明星-曾國城($600/1間，別人踩相鄰+300CF)、黑人($400/1間，擲骰5/6時自身-300CF)、慈善家($400/1間，過起點可付$300自身-500CF)、企業家($1000/3間唯一上限，過起點每工廠自身+200CF/滿3間+600)。</p>
+        </div>
+        <div class="rule-close" onclick="closeRules()">✕</div>
+    </div>
+
+    <div id="screen-cover" class="screen active-screen">
+        <h1>🌍 碳息生存戰</h1>
+        <div class="sub">V3 終極平衡版輔助系統</div>
+        <button onclick="switchScreen('screen-setup')">開始遊戲</button>
+        <button class="btn-alt" onclick="openRules()">遊戲規則</button>
+    </div>
+
+    <div id="screen-setup" class="screen">
+        <div class="setup-panel">
+            <h2>選擇人數</h2>
+            <select id="player-count" style="width:100%; padding:15px; font-size:20px; border-radius:12px; margin-bottom:25px; border:1px solid #555; background:#222; color:#fff;">
+                <option value="2">2 人遊玩</option>
+                <option value="3">3 人遊玩</option>
+                <option value="4" selected>4 人遊玩</option>
+            </select>
+            <button onclick="initDraw()">確認並抽選角色</button>
+            <button class="btn-alt" onclick="switchScreen('screen-cover')">返回</button>
+        </div>
+    </div>
+
+    <div id="screen-draw" class="screen">
+        <h2 id="draw-title">玩家 1 抽選</h2>
+        <p class="draw-sub-text">請點擊下方的卡牌...</p>
+        <div class="card-carousel" id="draw-carousel"></div>
+        <button id="next-draw-btn" class="btn-success" style="display:none; font-size:18px;">下一位 玩家</button>
+        <button id="start-game-btn" class="btn-success" style="display:none;" onclick="startGame()">正式開始遊戲！</button>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div class="player-status-grid" id="status-grid"></div>
+        
+        <div class="glass-panel game-status-bar" id="weather-bar">
+            🟢 當前氣候：正常藍天 (0 CF 最高)
+        </div>
+
+        <div class="home-action-zone">
+            <p style="color:#aaa; font-size:14px; margin-bottom:10px;">點擊上方任何玩家卡片以開啟操作面板...</p>
+            <button class="btn-alt" onclick="openRules()">查看規則</button>
+        </div>
+    </div>
+
+    <div id="bottom-panel">
+        <div class="panel-handle"></div>
+        <div class="panel-close" onclick="closeBottomPanel()">✕</div>
+        
+        <div class="active-p-info">
+            <div class="active-p-name"><span class="active-p-icon" id="panel-p-icon"></span>玩家 1 <span id="panel-p-role">載入中</span></div>
+            <div class="active-p-skill" id="panel-p-skill"></div>
+        </div>
+
+        <div class="action-zone">
+            <div class="input-group">
+                <input type="number" id="val-input" placeholder="輸入金額 (例: 500)">
+            </div>
+            <div class="btn-grid">
+                <button class="btn-panel btn-add-money" onclick="modifyStat('money', 1)">+ 加金錢</button>
+                <button class="btn-panel btn-sub-money" onclick="modifyStat('money', -1)">- 扣金錢</button>
+                <button class="btn-panel btn-add-cf" onclick="modifyStat('cf', 1)">+ 增碳排</button>
+                <button class="btn-panel btn-sub-cf" onclick="modifyStat('cf', -1)">- 減碳排</button>
+            </div>
+            
+            <div id="skill-btn-zone">
+                <button class="btn-panel btn-philanthropist" onclick="usePhilanthropist()">🌱 發動綠色募款 (-$300, -500CF)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 角色資料庫
+        const roleDB = [
+            { id: 1, icon: "👦", name: "老百姓", money: 300, skill: "【理性消費】踩工廠時CF傷-200" },
+            { id: 2, icon: "🌟", name: "曾國城", money: 600, skill: "【明星帶貨】別人踩相鄰+300CF" },
+            { id: 3, icon: "🚴", name: "黑人", money: 400, skill: "【低碳通勤】擲骰5/6時自身-300CF" },
+            { id: 4, icon: "🌱", name: "慈善家", money: 400, skill: "【綠色募款】過起點付$300自身-500CF" },
+            { id: 5, icon: "💼", name: "企業家", money: 1000, skill: "【工業污染】每工廠自身+200CF(滿3間+600)" }
+        ];
+
+        let players = [];
+        let drawingIndex = 0;
+        let shuffledRoles = [];
+        let activePlayerIdxForPanel = 0; // 當前正在彈窗操作的玩家
+
+        // 初始化 CSS 雨滴
+        function createRain() {
+            const container = document.getElementById('rain-container');
+            for(let i = 0; i < 50; i++) {
+                let drop = document.createElement('div');
+                drop.className = 'rain';
+                drop.style.left = Math.random() * 100 + 'vw';
+                drop.style.animationDelay = Math.random() * 2 + 's';
+                drop.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
+                container.appendChild(drop);
+            }
+        }
+        createRain();
+
+        // 開關全螢幕
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById(id).classList.add('active-screen');
+            closeBottomPanel(); // 切換畫面時關閉面板
+        }
+
+        // 開關規則面板
+        function openRules() { document.getElementById('rule-overlay').classList.add('active'); }
+        function closeRules() { document.getElementById('rule-overlay').classList.remove('active'); }
+
+        // 洗牌功能
+        function shuffle(arr) {
+            let a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        // --- 抽角區 (升級 V3 翻轉動畫) ---
+        function initDraw() {
+            const count = parseInt(document.getElementById('player-count').value);
+            players = [];
+            drawingIndex = 0;
+            shuffledRoles = shuffle(roleDB).slice(0, count);
+            
+            document.getElementById('draw-title').innerText = `玩家 1 抽選`;
+            document.querySelector('.draw-sub-text').style.display = 'block';
+            document.getElementById('next-draw-btn').style.display = 'none';
+            document.getElementById('start-game-btn').style.display = 'none';
+            
+            renderDrawCards();
+            switchScreen('screen-draw');
+        }
+
+        // 渲染卡牌陣列
+        function renderDrawCards() {
+            const carousel = document.getElementById('draw-carousel');
+            carousel.innerHTML = '';
+            
+            shuffledRoles.forEach((_, idx) => {
+                let wrapper = document.createElement('div');
+                wrapper.className = 'card-wrapper';
+                wrapper.id = `card-wrap-${idx}`;
+                
+                // 背面
+                let back = document.createElement('div');
+                back.className = 'card-side card-back';
+                back.innerText = "❓";
+                
+                // 正面 (顯示角色，初始隱藏)
+                let front = document.createElement('div');
+                front.className = 'card-side card-front';
+                front.innerHTML = `<div class="icon">${shuffledRoles[idx].icon}</div><div class="name">${shuffledRoles[idx].name}</div>`;
+                
+                wrapper.appendChild(back);
+                wrapper.appendChild(front);
+                
+                wrapper.onclick = () => flipCard(idx);
+                carousel.appendChild(wrapper);
+            });
+            
+            // 快速洗牌特效
+            document.querySelectorAll('.card-wrapper').forEach(card => {
+                card.style.animation = 'shuffle 0.8s ease';
+            });
+        }
+
+        // 翻轉單張卡片
+        function flipCard(idx) {
+            if (players.length > drawingIndex) return; // 防止重複點擊同一張
+
+            const wrapper = document.getElementById(`card-wrap-${idx}`);
+            wrapper.classList.add('flipped');
+            wrapper.onclick = null; // 點擊一次後關閉
+            
+            const assignedRole = shuffledRoles[drawingIndex];
+            
+            // 定格放大特效
+            setTimeout(() => {
+                wrapper.style.transform += ' scale(1.1)';
+                
+                players.push({
+                    pId: drawingIndex,
+                    role: assignedRole,
+                    currentMoney: assignedRole.money,
+                    currentCF: 0,
+                    hasBeenJailed: false,
+                    eliminated: false
+                });
+
+                document.querySelector('.draw-sub-text').style.display = 'none';
+                drawingIndex++;
+                
+                // 判斷按鈕顯示
+                if (drawingIndex < shuffledRoles.length) {
+                    const nextBtn = document.getElementById('next-draw-btn');
+                    nextBtn.innerText = `下一位 (玩家 ${drawingIndex + 1})`;
+                    nextBtn.style.display = 'block';
+                    nextBtn.onclick = () => {
+                        document.getElementById('draw-title').innerText = `玩家 ${drawingIndex + 1} 抽選`;
+                        document.querySelector('.draw-sub-text').style.display = 'block';
+                        nextBtn.style.display = 'none';
+                        // 滾動到下一張未翻轉的卡牌 (手機體驗)
+                        wrapper.parentElement.scrollLeft += wrapper.offsetWidth + 15;
+                    };
+                } else {
+                    document.getElementById('start-game-btn').style.display = 'block';
+                }
+            }, 600); // 動畫完成後執行
+        }
+
+        // --- 遊戲主畫面 (一目了然 V3) ---
+        function startGame() {
+            renderStatusGrid();
+            switchScreen('screen-game');
+            updateEnvironment();
+        }
+
+        // 渲染頂部狀態概覽卡片 (所有玩家同時顯示)
+        function renderStatusGrid() {
+            const grid = document.getElementById('status-grid');
+            grid.innerHTML = '';
+            
+            players.forEach((p, idx) => {
+                let div = document.createElement('div');
+                div.className = `player-status-card ${p.eliminated ? 'eliminated' : ''}`;
+                
+                let cardClass = "";
+                if (p.currentCF >= 10000) cardClass = "💀 已淘汰";
+                else if (p.currentCF >= 7000) cardClass = "⚠️ 警告";
+                else cardClass = "🟢 正常";
+
+                div.innerHTML = `
+                    <div class="p-card-top">
+                        <span class="p-icon">${p.role.icon}</span>
+                        <div class="p-info">
+                            <div class="p-id">P${idx+1}</div>
+                            <div class="p-name">${p.role.name}</div>
+                        </div>
+                    </div>
+                    <div class="p-stats">
+                        <div class="p-stat p-money-val"><span class="s-icon">💰</span> $<span class="p-val-inner">${p.currentMoney}</span></div>
+                        <div class="p-stat p-cf-val"><span class="s-icon">☠️</span> <span class="p-val-inner">${p.currentCF}</span> CF</div>
+                        <div style="font-size:12px; color:#aaa; margin-top:5px; text-align:right;">${cardClass}</div>
+                    </div>
+                `;
+                // 點擊卡片彈出底部面板
+                div.onclick = () => openBottomPanel(idx);
+                grid.appendChild(div);
+            });
+        }
+
+        // --- 底部操作面板 (手機模式彈窗 V3) ---
+        function openBottomPanel(idx) {
+            const panel = document.getElementById('bottom-panel');
+            const shade = document.getElementById('overlay-shade');
+            activePlayerIdxForPanel = idx;
+            const p = players[idx];
+
+            document.getElementById('panel-p-icon').innerText = p.role.icon;
+            document.getElementById('panel-p-role').innerText = p.role.name;
+            document.getElementById('panel-p-skill').innerText = p.role.skill;
+            document.getElementById('val-input').value = ""; // 清空輸入框
+
+            // 鎖定已淘汰玩家的操作
+            const panelContent = document.querySelector('#bottom-panel .action-zone');
+            if (p.eliminated) {
+                panelContent.style.filter = "grayscale(100%) opacity(0.5)";
+                panelContent.style.pointerEvents = "none";
+            } else {
+                panelContent.style.filter = "none";
+                panelContent.style.pointerEvents = "auto";
+            }
+
+            // 慈善家專屬按鈕
+            if (p.role.name === "慈善家" && !p.eliminated) {
+                document.getElementById('skill-btn-zone').style.display = 'block';
+            } else {
+                document.getElementById('skill-btn-zone').style.display = 'none';
+            }
+
+            shade.classList.add('active');
+            panel.classList.add('active');
+        }
+
+        function closeBottomPanel() {
+            document.getElementById('bottom-panel').classList.remove('active');
+            document.getElementById('overlay-shade').classList.remove('active');
+        }
+
+        // 修改數值 (核心邏輯)
+        function modifyStat(type, multiplier) {
+            const p = players[activePlayerIdxForPanel];
+            if (p.eliminated) return;
+
+            const input = document.getElementById('val-input');
+            const val = parseInt(input.value);
+            
+            if (isNaN(val) || val <= 0) {
+                alert("請輸入有效的正數字！");
+                return;
+            }
+
+            if (type === 'money') {
+                p.currentMoney += (val * multiplier);
+                if (p.currentMoney < 0) p.currentMoney = 0;
+            } else if (type === 'cf') {
+                const oldCF = p.currentCF;
+                p.currentCF += (val * multiplier);
+                if (p.currentCF < 0) p.currentCF = 0;
+                
+                checkThresholds(p, oldCF);
+            }
+
+            input.value = ""; 
+            closeBottomPanel(); // 操作完成後自動關閉彈窗
+            renderStatusGrid(); // 刷新概覽卡片
+            updateEnvironment(); // 更新天氣背景
+        }
+
+        // 慈善家技能
+        function usePhilanthropist() {
+            const p = players[activePlayerIdxForPanel];
+            if (p.currentMoney >= 300) {
+                p.currentMoney -= 300;
+                p.currentCF = Math.max(0, p.currentCF - 500);
+                closeBottomPanel();
+                playFX('<div class="heal-fx">🌱✨</div>', 1500);
+                renderStatusGrid();
+                updateEnvironment();
+            } else { alert("金錢不足 $300，無法募款！"); }
+        }
+
+        // 檢查碳排門檻 (入獄 / 淘汰)
+        function checkThresholds(p, oldCF) {
+            // 檢查 10000 淘汰線
+            if (p.currentCF >= 10000 && !p.eliminated) {
+                p.eliminated = true;
+                playFX('<div class="death-overlay"></div><div class="skull">☠️</div>', 3000);
+                return;
+            }
+            
+            // 檢查 7000 警告線 (僅一次)
+            if (p.currentCF >= 7000 && oldCF < 7000 && !p.hasBeenJailed && !p.eliminated) {
+                p.hasBeenJailed = true;
+                playFX('<div class="jail-bars"></div><div class="jail-text">🚨 入獄 🚨</div>', 2500);
+            }
+        }
+
+        // 播放全螢幕特效
+        function playFX(htmlContent, duration) {
+            const layer = document.getElementById('fx-layer');
+            layer.innerHTML = htmlContent;
+            layer.style.display = 'flex';
+            setTimeout(() => {
+                layer.style.display = 'none';
+                layer.innerHTML = '';
+            }, duration);
+        }
+
+        // 動態更新天氣背景 (整合 V3 杜拜圖片)
+        function updateEnvironment() {
+            const activePlayers = players.filter(p => !p.eliminated);
+            let maxCF = 0;
+            if (activePlayers.length > 0) {
+                maxCF = Math.max(...activePlayers.map(p => p.currentCF));
+            }
+            
+            let ratio = Math.min(maxCF / 10000, 1);
+            
+            // 背景過渡 (Sunny -> Rainy)
+            document.getElementById('bg-sunny').style.opacity = (1 - ratio).toFixed(2);
+            document.getElementById('bg-rainy').style.opacity = ratio.toFixed(2);
+            
+            // 雨滴持續動畫 (過渡其強度)
+            document.getElementById('rain-container').style.opacity = (ratio > 0.3 ? ratio : 0).toFixed(2);
+            
+            // 更新狀態欄
+            let weatherText = "";
+            if(ratio >= 1) weatherText = "💀 天氣：末日暴雨 (淘汰線)";
+            else if(ratio >= 0.7) weatherText = "⚠️ 天氣：雷雨交加 (警告中)";
+            else if(ratio >= 0.3) weatherText = "💧 天氣：陰天小雨 (污染中)";
+            else weatherText = "🟢 當前氣候：正常藍天";
+            
+            document.getElementById('weather-bar').innerText = `${weatherText} (${maxCF} CF 最高)`;
+        }
+    </script>
+</body>
+</html>
