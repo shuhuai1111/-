@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>《碳息生存戰》終極系統</title>
+    <style>
+        :root {
+            --panel-bg: rgba(20, 20, 20, 0.85);
+            --panel-border: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --money-val: #f1c40f;
+            --cf-val: #e74c3c;
+            --primary: #3498db;
+            --success: #2ecc71;
+            --warning: #e67e22;
+        }
+        
+        body {
+            font-family: 'PingFang TC', 'Arial', sans-serif;
+            margin: 0; padding: 0;
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 杜拜動態背景視圖 */
+        #background-view {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -2;
+            overflow: hidden;
+        }
+        
+        .bg-img {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+            transition: opacity 1.5s ease;
+        }
+
+        /* 嵌入使用者提供的杜拜圖片網址 */
+        #bg-sunny { background-image: url('https://images.prodia.xyz/30784c.jpg'); opacity: 1; z-index: -3; }
+        #bg-rainy { background-image: url('https://images.prodia.xyz/307866.jpg'); opacity: 0; z-index: -2; }
+
+        /* 雨滴持續動畫 */
+        #rain-container {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+            pointer-events: none;
+        }
+        
+        .rain {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            width: 1.5px;
+            height: 25px;
+            animation: rainDrop 0.8s infinite linear;
+        }
+
+        @keyframes rainDrop {
+            to { transform: translateY(100vh); }
+        }
+
+        .screen { display: none; width: 100%; height: 100%; box-sizing: border-box; flex-direction: column; align-items: center; text-align: center; position: relative; }
+        .active-screen { display: flex; }
+
+        h1 { margin: 25px 0 10px 0; font-size: 38px; text-shadow: 0 4px 8px rgba(0,0,0,0.7); font-weight: 900; letter-spacing: 2px; }
+        .sub { color: #e0e0e0; margin-bottom: 35px; font-size: 16px; text-shadow: 0 2px 4px rgba(0,0,0,0.7); background: rgba(0,0,0,0.4); padding: 5px 15px; border-radius: 20px; }
+
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; padding: 16px 24px; font-size: 20px; font-weight: bold;
+            border-radius: 14px; cursor: pointer; width: 80%; max-width: 300px; margin: 12px 0; transition: 0.2s; box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+            outline: none;
+        }
+        button:active { transform: scale(0.96); }
+        button.btn-alt { background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); }
+        button.btn-success { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+
+        #screen-cover { justify-content: center; }
+        #screen-setup { justify-content: center; }
+        .setup-panel { background: var(--panel-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 30px; width: 85%; max-width: 400px; border: 1px solid var(--panel-border); box-shadow: 0 15px 30px rgba(0,0,0,0.6); }
+
+        /* --- 抽角區 (卡牌翻轉動畫) --- */
+        #screen-draw { justify-content: flex-start; padding-top: 40px; }
+        .card-carousel { display: flex; gap: 15px; margin: 30px 0; perspective: 1000px; padding: 10px 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; box-sizing: border-box;}
+        .card-carousel::-webkit-scrollbar { display: none; }
+        
+        .card-wrapper {
+            position: relative;
+            width: 160px; height: 230px; flex-shrink: 0;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        
+        .card-wrapper.flipped { transform: rotateY(180deg); }
+        
+        .card-side {
+            position: absolute;
+            width: 100%; height: 100%;
+            border-radius: 20px;
+            display: flex; justify-content: center; align-items: center;
+            backface-visibility: hidden;
+            box-shadow: 0 10px 18px rgba(0,0,0,0.5);
+            border: 2px solid var(--panel-border);
+        }
+        
+        .card-back { background: radial-gradient(circle, #3a3a3a, #151515); font-size: 80px; transform: rotateY(0deg); color: var(--primary); }
+        .card-front { background: var(--panel-bg); backdrop-filter: blur(10px); transform: rotateY(180deg); flex-direction: column; padding: 20px; text-align: center;}
+        
+        .card-front .icon { font-size: 65px; margin-bottom: 12px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+        .card-front .name { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+
+        @keyframes shuffleAnimation { 
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05) translateY(-10px); }
+        }
+
+        /* --- 遊戲主畫面 --- */
+        #screen-game { justify-content: flex-start; padding-top: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        
+        .player-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 0 15px; width: 100%; box-sizing: border-box; margin-bottom: 25px; }
+        
+        .player-status-card {
+            background: var(--panel-bg); backdrop-filter: blur(10px); border-radius: 20px; padding: 15px; text-align: left;
+            border: 1px solid var(--panel-border); box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+            cursor: pointer; transition: 0.2s;
+        }
+        .player-status-card:active { transform: scale(0.97); }
+        .player-status-card.eliminated { filter: grayscale(100%); opacity: 0.4; border-color: #444; }
+        
+        .p-card-top { display: flex; align-items: center; margin-bottom: 10px; }
+        .p-icon { font-size: 34px; margin-right: 12px; }
+        .p-info { flex: 1; }
+        .p-id { font-size: 12px; color: #aaa; font-weight: bold; }
+        .p-name { font-size: 17px; font-weight: bold; }
+
+        .p-stats { border-top: 1px solid rgba(255,255,255,0.15); padding-top: 10px; }
+        .p-stat { font-size: 19px; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center;}
+        .p-stat .s-icon { font-size: 20px; margin-right: 8px;}
+        .p-money-val { color: var(--money-val); }
+        .p-cf-val { color: var(--cf-val); }
+
+        .game-status-bar { padding: 15px; color: #fff; font-size: 15px; margin-bottom: 25px; max-width: 420px; width: 85%; border-radius: 16px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); text-align: center; font-weight: bold;}
+        .home-action-zone { width: 100%; max-width: 400px; }
+
+        /* --- 底部彈出式操作面板 --- */
+        #bottom-panel {
+            position: fixed;
+            bottom: 0; left: 0; width: 100%; height: 75%;
+            background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(20px); border-top-left-radius: 28px; border-top-right-radius: 28px;
+            border-top: 2px solid var(--panel-border);
+            z-index: 100;
+            display: none; flex-direction: column;
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.35s ease;
+            transform: translateY(100%);
+            opacity: 0;
+            padding: 25px; box-sizing: border-box;
+            box-shadow: 0 -15px 35px rgba(0,0,0,0.7);
+        }
+        
+        #bottom-panel.active { display: flex; transform: translateY(0); opacity: 1;}
+        
+        .panel-handle { width: 45px; height: 5px; background: rgba(255,255,255,0.3); border-radius: 3px; align-self: center; margin-bottom: 20px;}
+        .panel-close { position: absolute; top: 22px; right: 25px; font-size: 28px; cursor: pointer; color: #aaa; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; background: rgba(255,255,255,0.1); border-radius: 50%;}
+
+        .active-p-info { margin-bottom: 20px; text-align: left;}
+        .active-p-name { font-size: 26px; font-weight: bold; display: flex; align-items: center; margin-bottom: 8px;}
+        .active-p-icon { font-size: 42px; margin-right: 15px;}
+        .active-p-skill { font-size: 14px; color: #ddd; min-height: 45px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; line-height: 1.4;}
+
+        .input-group { margin: 20px 0; display: flex; justify-content: center; }
+        input[type="number"] { width: 90%; padding: 18px; font-size: 30px; text-align: center; border-radius: 14px; border: none; background: rgba(255,255,255,0.08); color: #fff; font-weight: bold; outline: none; border: 1px solid var(--panel-border); -webkit-appearance: none; margin: 0; }
+        
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 420px; width: 100%; margin: 0 auto;}
+        .btn-panel { font-size: 18px; padding: 16px; margin: 0; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        .btn-add-money { background: linear-gradient(135deg, #f1c40f, #f39c12); color: #000; }
+        .btn-sub-money { background: linear-gradient(135deg, #9a7d0a, #7d6608); }
+        .btn-add-cf { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .btn-sub-cf { background: linear-gradient(135deg, #922b21, #762217); }
+
+        #skill-btn-zone { margin-top: 18px; display: none; }
+        .btn-philanthropist { background: linear-gradient(135deg, #2ecc71, #27ae60); animation: pulse 2s infinite; width: 100%; max-width: 420px; margin: 0 auto;}
+
+        /* --- 全螢幕規則說明面板 --- */
+        #rule-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(10, 10, 10, 0.98); backdrop-filter: blur(15px);
+            z-index: 200;
+            display: none; flex-direction: column;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+            padding: 30px 25px 80px 25px; box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        #rule-overlay.active { display: flex; opacity: 1;}
+        .rule-close { position: fixed; bottom: 25px; right: 25px; font-size: 26px; cursor: pointer; color: #fff; background: var(--primary); padding: 12px; border-radius: 50%; width: 55px; height: 55px; display: flex; justify-content: center; align-items: center; box-shadow: 0 6px 12px rgba(0,0,0,0.5); z-index: 210;}
+        
+        #rules-content { text-align: left; line-height: 1.7; font-size: 15px;}
+        #rules-content h2 { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-top: 25px; font-size: 22px;}
+        #rules-content h3 { color: #2ecc71; margin-top: 20px; font-size: 18px;}
+        #rules-content h4 { color: #f1c40f; margin-top: 15px; margin-bottom: 5px; font-size: 16px;}
+        #rules-content ul { padding-left: 20px; margin: 8px 0;}
+        #rules-content b.money { color: var(--money-val); }
+        #rules-content b.cf { color: var(--cf-val); }
+
+        /* --- 全螢幕動畫特效層 --- */
+        #fx-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 999; display: none; justify-content: center; align-items: center; }
+        .jail-bars { width: 100%; height: 100%; background: repeating-linear-gradient(90deg, transparent, transparent 15%, #111 15%, #111 20%); animation: dropDown 0.5s ease forwards; position: absolute; }
+        .jail-text { font-size: 65px; color: #e74c3c; font-weight: 900; text-shadow: 0 4px 15px #000; z-index: 2; animation: stamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; letter-spacing: 2px; }
+        .death-overlay { width: 100%; height: 100%; background: rgba(0,0,0,0.85); position: absolute; animation: flash 0.4s 2; }
+        .skull { font-size: 130px; z-index: 2; animation: explode 1.2s forwards; text-shadow: 0 0 30px #e74c3c; }
+        .heal-fx { font-size: 90px; position: absolute; animation: floatUp 1.5s ease-out forwards; opacity: 0; text-shadow: 0 0 20px #2ecc71; }
+
+        @keyframes dropDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+        @keyframes stamp { 0% { transform: scale(3.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes flash { 0%, 100% { background: rgba(0,0,0,0.85); } 50% { background: rgba(192, 57, 43, 0.5); } }
+        @keyframes explode { 0% { transform: scale(0.5); opacity: 0; } 30% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
+        @keyframes floatUp { 0% { transform: translateY(80px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-160px); opacity: 0; } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(46, 204, 113, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); } }
+        
+        #overlay-shade { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); display: none; z-index: 50; backdrop-filter: blur(3px); }
+        #overlay-shade.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="background-view">
+        <div id="bg-sunny" class="bg-img"></div>
+        <div id="bg-rainy" class="bg-img"></div>
+        <div id="rain-container"></div>
+    </div>
+
+    <div id="fx-layer"></div>
+    <div id="overlay-shade" onclick="closeBottomPanel()"></div>
+
+    <div id="rule-overlay">
+        <h2>📜 《碳息生存戰》V3 終極平衡版規則</h2>
+        <div id="rules-content">
+            <h3>⚖️ 勝負條件</h3>
+            <p>本遊戲採用「金錢」與「碳排放量（CF）」雙軌制。</p>
+            <ul>
+                <li><b class="money">💰 金錢：</b>購買、升級與行動資源。</li>
+                <li><b class="cf">☠️ 碳排（CF）：</b>玩家生命值。當累積達 <b class="cf">10,000 CF</b> 時立即爆點淘汰。</li>
+                <li><b>獲勝方式：</b>成為全場最後唯一存活、未爆碳出局的玩家。</li>
+            </ul>
+
+            <h3>🏭 快時尚工廠系統（共 6 格）</h3>
+            <p>玩家踩到工廠地時，可購買或升級工廠。<b>地主保護機制：</b>地主自己踩到自己的工廠格時，不會增加碳排。</p>
+            <ul>
+                <li><b>Level 1｜初級工廠</b><br>升級需支付：<b class="money">$200</b> | 地主自身：<b class="cf">+500 CF</b> | 路人踩中：<b class="cf">+400 CF</b></li>
+                <li><b>Level 2｜中級工廠</b><br>升級需支付：<b class="money">$300</b> | 地主自身：<b class="cf">+600 CF</b> | 路人踩中：<b class="cf">+700 CF</b></li>
+                <li><b>Level 3｜高級工廠</b><br>升級需支付：<b class="money">$400</b> | 地主自身：<b class="cf">+800 CF</b> | 路人踩中：<b class="cf">+1,000 CF</b></li>
+                <li><b>👑 Level 4｜頂級工廠</b><br>無法直接花錢升級。條件：必須先擁有高級工廠，再透過抽中特定機會／命運卡進化。效果：路人踩中直接爆加 <b class="cf">+1,500 CF</b></li>
+            </ul>
+
+            <h3>🚔 環保局（監獄）雙軌系統</h3>
+            <p>為防玩家惡意躲監獄避戰，入獄分為兩種性質：</p>
+            <h4>軌道 A｜大自然的最後警告（一生僅限一次）</h4>
+            <p>當任何玩家的碳排放量<b>首次達到或超過 7,000 CF</b> 時，在大自然反撲下強制立即入獄。效果：強制入獄 2 回合、無法領取薪水、旗下工廠全面停工。<b>唯一福利：</b>坐牢期間，每回合可選擇支付 <b class="money">$200</b> 進行環保贖罪，使自身 <b class="cf">-500 CF</b>（若不付錢則維持不變）。</p>
+            <h4>軌道 B｜違規查緝入獄</h4>
+            <p>因踩到格子或抽到「立即前往環保局」等事件卡而入獄。效果：入獄 2 回合、無法領薪、工廠停工。此狀態下<b>無法</b>付錢減碳。</p>
+
+            <h3>🛡️ 二手古著店（防禦護盾）</h3>
+            <p>玩家可在古著店格支付 <b class="money">$400</b> 購買一件古著護盾（每人限存一件，一次性消耗）。<b>效果：</b>當下次不幸踩到別人的工廠時，可自動消耗護盾，完全抵銷該次工廠帶來的全部碳排傷害！</p>
+            
+            <h3>✈️ 飛機（航空港格）</h3>
+            <p>移動福利格。踩中後可支付 <b class="money">$300</b> 購買機票，於下回合直接飛往地圖上的任意指定格子。<b>代價：</b>由於搭乘飛機高污染，自身必須 <b class="cf">+400 CF</b>。</p>
+            
+            <h3>🔹 其他地圖功能格</h3>
+            <ul>
+                <li><b>🛢️ 石油格：</b>開採石油獲得高額回報，直接發放金錢 <b class="money">+$500</b>，但代價是自身巨大污染 <b class="cf">+1,000 CF</b>。</li>
+                <li><b>🛍️ 環保袋格：</b>實踐減塑生活，自身碳排放量直接 <b class="cf">-800 CF</b>。</li>
+                <li><b>❓ 機會／命運格：</b>抽取事件卡，可能包含工廠環保稅、強制入獄、工廠進化、金錢巨變等隨機事件。</li>
+            </ul>
+
+            <h3>👤 角色技能一覽</h3>
+            <ul>
+                <li><b>👦 老百姓：</b>初始 $300。上限 1 間工廠。【理性消費】踩到他人工廠時，受到的碳排傷害固定減免 200 CF。</li>
+                <li><b>🌟 曾國城：</b>初始 $600。上限 1 間工廠。【明星帶貨】當有其他路人踩到與你工廠相鄰的格子時，該路人強制 +300 CF。</li>
+                <li><b>🚴 黑人：</b>初始 $400。上限 1 間工廠。【低碳通勤】自身回合擲骰結果為 5 或 6 時，心情愉悅使自身 -300 CF。</li>
+                <li><b>🌱 慈善家：</b>初始 $400。上限 1 間工廠。【綠色募款】每次經過或踩到起點格時，可發動技能支付 $300，使自身大幅減碳 -500 CF。</li>
+                <li><b>💼 企業家：</b>初始 $1000。全場唯一工廠上限 3 間。【工業污染】每次經過或踩到起點格時，每擁有一間工廠自身必須 +200 CF（若蓋滿 3 間則固定 +600 CF）。</li>
+            </ul>
+        </div>
+        <div class="rule-close" onclick="closeRules()">✕</div>
+    </div>
+
+    <div id="screen-cover" class="screen active-screen">
+        <h1>🌍 碳息生存戰</h1>
+        <div class="sub">V3 終極平衡版輔助系統</div>
+        <button onclick="switchScreen('screen-setup')">開始遊戲</button>
+        <button class="btn-alt" onclick="openRules()">遊戲規則</button>
+    </div>
+
+    <div id="screen-setup" class="screen">
+        <div class="setup-panel">
+            <h2 style="margin-top:0;">選擇人數</h2>
+            <select id="player-count" style="width:100%; padding:16px; font-size:20px; border-radius:12px; margin-bottom:25px; border:1px solid #555; background:#222; color:#fff; outline:none;">
+                <option value="2">2 人遊玩</option>
+                <option value="3">3 人遊玩</option>
+                <option value="4" selected>4 人遊玩</option>
+            </select>
+            <button onclick="initDraw()">確認並抽選角色</button>
+            <button class="btn-alt" onclick="switchScreen('screen-cover')">返回</button>
+        </div>
+    </div>
+
+    <div id="screen-draw" class="screen">
+        <h2 id="draw-title" style="margin-bottom:5px;">玩家 1 抽選</h2>
+        <p class="draw-sub-text" style="color:#aaa; margin:0 0 10px 0;">請點擊下方任意一張神秘卡牌翻面...</p>
+        <div class="card-carousel" id="draw-carousel"></div>
+        <button id="next-draw-btn" class="btn-success" style="display:none;">下一位 玩家</button>
+        <button id="start-game-btn" class="btn-success" style="display:none;" onclick="startGame()">正式開始遊戲！</button>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div class="player-status-grid" id="status-grid"></div>
+        
+        <div class="game-status-bar" id="weather-bar">
+            🟢 當前氣候：正常藍天 (0 CF 最高)
+        </div>
+
+        <div class="home-action-zone">
+            <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:15px; text-shadow:0 2px 4px #000;">💡 點擊上方任何一位玩家的卡片，即可彈出數值調整面板</p>
+            <button class="btn-alt" onclick="openRules()">查看完整規則說明</button>
+        </div>
+    </div>
+
+    <div id="bottom-panel">
+        <div class="panel-handle"></div>
+        <div class="panel-close" onclick="closeBottomPanel()">✕</div>
+        
+        <div class="active-p-info">
+            <div class="active-p-name"><span class="active-p-icon" id="panel-p-icon"></span>玩家 <span id="panel-p-num">1</span>：<span id="panel-p-role">載入中</span></div>
+            <div class="active-p-skill" id="panel-p-skill"></div>
+        </div>
+
+        <div class="action-zone">
+            <div class="input-group">
+                <input type="number" id="val-input" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入欲變動的數字">
+            </div>
+            <div class="btn-grid">
+                <button class="btn-panel btn-add-money" onclick="modifyStat('money', 1)">💰 加金錢</button>
+                <button class="btn-panel btn-sub-money" onclick="modifyStat('money', -1)">💰 扣金錢</button>
+                <button class="btn-panel btn-add-cf" onclick="modifyStat('cf', 1)">🏭 增碳排</button>
+                <button class="btn-panel btn-sub-cf" onclick="modifyStat('cf', -1)">🌱 減碳排</button>
+            </div>
+            
+            <div id="skill-btn-zone">
+                <button class="btn-panel btn-philanthropist" onclick="usePhilanthropist()">🌱 發動【綠色募款】(-$300, -500CF)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const roleDB = [
+            { id: 1, icon: "👦", name: "老百姓", money: 300, skill: "【理性消費】踩到他人工廠時，受到的碳排傷害固定減免 200 CF" },
+            { id: 2, icon: "🌟", name: "曾國城", money: 600, skill: "【明星帶貨】當有其他路人踩到與你工廠相鄰的格子時，該路人強制 +300 CF" },
+            { id: 3, icon: "🚴", name: "黑人", money: 400, skill: "【低碳通勤】自身回合擲骰結果為 5 或 6 時，自身 -300 CF" },
+            { id: 4, icon: "🌱", name: "慈善家", money: 400, skill: "【綠色募款】過起點可點下方按鈕支付 $300，使自身 -500 CF" },
+            { id: 5, icon: "💼", name: "企業家", money: 1000, skill: "【工業污染】過起點每有1間工廠+200CF (滿3間強制+600 CF)" }
+        ];
+
+        let players = [];
+        let drawingIndex = 0;
+        let shuffledRoles = [];
+        let activePlayerIdxForPanel = 0;
+
+        function createRain() {
+            const container = document.getElementById('rain-container');
+            container.innerHTML = '';
+            for(let i = 0; i < 60; i++) {
+                let drop = document.createElement('div');
+                drop.className = 'rain';
+                drop.style.left = Math.random() * 100 + 'vw';
+                drop.style.animationDelay = Math.random() * 2 + 's';
+                drop.style.animationDuration = (Math.random() * 0.4 + 0.4) + 's';
+                container.appendChild(drop);
+            }
+        }
+        createRain();
+
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById(id).classList.add('active-screen');
+            closeBottomPanel();
+        }
+
+        function openRules() { document.getElementById('rule-overlay').classList.add('active'); }
+        function closeRules() { document.getElementById('rule-overlay').classList.remove('active'); }
+
+        function shuffle(arr) {
+            let a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function initDraw() {
+            const count = parseInt(document.getElementById('player-count').value);
+            players = [];
+            drawingIndex = 0;
+            shuffledRoles = shuffle(roleDB).slice(0, count);
+            
+            document.getElementById('draw-title').innerText = `玩家 1 抽選`;
+            document.querySelector('.draw-sub-text').style.display = 'block';
+            document.getElementById('next-draw-btn').style.display = 'none';
+            document.getElementById('start-game-btn').style.display = 'none';
+            
+            renderDrawCards();
+            switchScreen('screen-draw');
+        }
+
+        function renderDrawCards() {
+            const carousel = document.getElementById('draw-carousel');
+            carousel.innerHTML = '';
+            
+            shuffledRoles.forEach((_, idx) => {
+                let wrapper = document.createElement('div');
+                wrapper.className = 'card-wrapper';
+                wrapper.id = `card-wrap-${idx}`;
+                wrapper.style.animation = 'shuffleAnimation 0.5s ease';
+                
+                let back = document.createElement('div');
+                back.className = 'card-side card-back';
+                back.innerText = "❓";
+                
+                let front = document.createElement('div');
+                front.className = 'card-side card-front';
+                front.innerHTML = `<div class="icon">${shuffledRoles[idx].icon}</div><div class="name">${shuffledRoles[idx].name}</div>`;
+                
+                wrapper.appendChild(back);
+                wrapper.appendChild(front);
+                wrapper.onclick = () => flipCard(idx);
+                carousel.appendChild(wrapper);
+            });
+        }
+
+        function flipCard(idx) {
+            if (players.length > drawingIndex) return;
+
+            const wrapper = document.getElementById(`card-wrap-${idx}`);
+            wrapper.classList.add('flipped');
+            wrapper.onclick = null;
+            
+            const assignedRole = shuffledRoles[drawingIndex];
+            
+            setTimeout(() => {
+                players.push({
+                    pId: drawingIndex,
+                    role: assignedRole,
+                    currentMoney: assignedRole.money,
+                    currentCF: 0,
+                    hasBeenJailed: false,
+                    eliminated: false
+                });
+
+                document.querySelector('.draw-sub-text').style.display = 'none';
+                drawingIndex++;
+                
+                if (drawingIndex < shuffledRoles.length) {
+                    const nextBtn = document.getElementById('next-draw-btn');
+                    nextBtn.innerText = `下一位 (玩家 ${drawingIndex + 1})`;
+                    nextBtn.style.display = 'block';
+                    nextBtn.onclick = () => {
+                        document.getElementById('draw-title').innerText = `玩家 ${drawingIndex + 1} 抽選`;
+                        document.querySelector('.draw-sub-text').style.display = 'block';
+                        nextBtn.style.display = 'none';
+                        wrapper.parentElement.scrollLeft += wrapper.offsetWidth + 15;
+                    };
+                } else {
+                    document.getElementById('start-game-btn').style.display = 'block';
+                }
+            }, 300);
+        }
+
+        function startGame() {
+            renderStatusGrid();
+            switchScreen('screen-game');
+            updateEnvironment();
+        }
+
+        function renderStatusGrid() {
+            const grid = document.getElementById('status-grid');
+            grid.innerHTML = '';
+            
+            players.forEach((p, idx) => {
+                let div = document.createElement('div');
+                div.className = `player-status-card ${p.eliminated ? 'eliminated' : ''}`;
+                
+                let cardClass = "";
+                if (p.currentCF >= 10000) cardClass = "💀 已淘汰";
+                else if (p.currentCF >= 7000) cardClass = "🚨 已入獄";
+                else cardClass = "🟢 存活中";
+
+                div.innerHTML = `
+                    <div class="p-card-top">
+                        <span class="p-icon">${p.role.icon}</span>
+                        <div class="p-info">
+                            <div class="p-id">PLAYER 0${idx+1}</div>
+                            <div class="p-name">${p.role.name}</div>
+                        </div>
+                    </div>
+                    <div class="p-stats">
+                        <div class="p-stat p-money-val"><span class="s-icon">💰</span>$${p.currentMoney}</div>
+                        <div class="p-stat p-cf-val"><span class="s-icon">🏭</span>${p.currentCF} CF</div>
+                        <div style="font-size:12px; color:#ccc; margin-top:8px; text-align:right; font-weight:bold;">${cardClass}</div>
+                    </div>
+                `;
+                div.onclick = () => openBottomPanel(idx);
+                grid.appendChild(div);
+            });
+        }
+
+        function openBottomPanel(idx) {
+            const panel = document.getElementById('bottom-panel');
+            const shade = document.getElementById('overlay-shade');
+            activePlayerIdxForPanel = idx;
+            const p = players[idx];
+
+            document.getElementById('panel-p-icon').innerText = p.role.icon;
+            document.getElementById('panel-p-num').innerText = idx + 1;
+            document.getElementById('panel-p-role').innerText = p.role.name;
+            document.getElementById('panel-p-skill').innerText = p.role.skill;
+            document.getElementById('val-input').value = "";
+
+            const panelContent = document.querySelector('#bottom-panel .action-zone');
+            if (p.eliminated) {
+                panelContent.style.filter = "grayscale(100%) opacity(0.3)";
+                panelContent.style.pointerEvents = "none";
+            } else {
+                panelContent.style.filter = "none";
+                panelContent.style.pointerEvents = "auto";
+            }
+
+            if (p.role.name === "慈善家" && !p.eliminated) {
+                document.getElementById('skill-btn-zone').style.display = 'block';
+            } else {
+                document.getElementById('skill-btn-zone').style.display = 'none';
+            }
+
+            shade.classList.add('active');
+            panel.classList.add('active');
+        }
+
+        function closeBottomPanel() {
+            document.getElementById('bottom-panel').classList.remove('active');
+            document.getElementById('overlay-shade').classList.remove('active');
+        }
+
+        function modifyStat(type, multiplier) {
+            const p = players[activePlayerIdxForPanel];
+            if (p.eliminated) return;
+
+            const input = document.getElementById('val-input');
+            const val = parseInt(input.value);
+            
+            if (isNaN(val) || val <= 0) {
+                alert("請輸入有效的正整數數值！");
+                return;
+            }
+
+            if (type === 'money') {
+                p.currentMoney += (val * multiplier);
+                if (p.currentMoney < 0) p.currentMoney = 0;
+            } else if (type === 'cf') {
+                const oldCF = p.currentCF;
+                p.currentCF += (val * multiplier);
+                if (p.currentCF < 0) p.currentCF = 0;
+                
+                checkThresholds(p, oldCF);
+            }
+
+            input.value = ""; 
+            closeBottomPanel();
+            renderStatusGrid();
+            updateEnvironment();
+        }
+
+        function usePhilanthropist() {
+            const p = players[activePlayerIdxForPanel];
+            if (p.currentMoney >= 300) {
+                p.currentMoney -= 300;
+                p.currentCF = Math.max(0, p.currentCF - 500);
+                closeBottomPanel();
+                playFX('<div class="heal-fx">🌱✨</div>', 1500);
+                renderStatusGrid();
+                updateEnvironment();
+            } else { alert("金錢不足 $300，無法發動技能！"); }
+        }
+
+        function checkThresholds(p, oldCF) {
+            if (p.currentCF >= 10000 && !p.eliminated) {
+                p.eliminated = true;
+                playFX('<div class="death-overlay"></div><div class="skull">☠️</div>', 3000);
+                return;
+            }
+            if (p.currentCF >= 7000 && oldCF < 7000 && !p.hasBeenJailed && !p.eliminated) {
+                p.hasBeenJailed = true;
+                playFX('<div class="jail-bars"></div><div class="jail-text">🚨 首次超標 7000<br>強制入獄 🚨</div>', 2500);
+            }
+        }
+
+        function playFX(htmlContent, duration) {
+            const layer = document.getElementById('fx-layer');
+            layer.innerHTML = htmlContent;
+            layer.style.display = 'flex';
+            setTimeout(() => {
+                layer.style.display = 'none';
+                layer.innerHTML = '';
+            }, duration);
+        }
+
+        function updateEnvironment() {
+            const activePlayers = players.filter(p => !p.eliminated);
+            let maxCF = 0;
+            if (activePlayers.length > 0) {
+                maxCF = Math.max(...activePlayers.map(p => p.currentCF));
+            }
+            
+            let ratio = Math.min(maxCF / 10000, 1);
+            
+            document.getElementById('bg-sunny').style.opacity = (1 - ratio).toFixed(2);
+            document.getElementById('bg-rainy').style.opacity = ratio.toFixed(2);
+            document.getElementById('rain-container').style.opacity = (ratio > 0.2 ? ratio : 0).toFixed(2);
+            
+            let weatherText = "";
+            if(ratio >= 1) weatherText = "💀 氣候崩潰：末日暴雨 (10,000 CF)";
+            else if(ratio >= 0.7) weatherText = "🚨 氣候警報：雷雨交加 (超過 7,000 CF)";
+            else if(ratio >= 0.3) weatherText = "💧 氣候轉變：烏雲小雨";
+            else weatherText = "🟢 當前氣候：正常藍天白雲";
+            
+            document.getElementById('weather-bar').innerText = `${weatherText} ｜ 最高排碳：${maxCF} CF`;
+        }
+    </script>
+</body>
+</html>
