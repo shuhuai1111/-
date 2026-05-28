@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>節能減碳大富翁</title>
+    <title>節能減碳大富翁 V5.0</title>
     <style>
         :root {
             /* 玻璃質感配色 */
@@ -170,7 +170,7 @@
 
     <div id="screen-cover" class="screen active-screen">
         <h1>🌍 節能減碳大富翁</h1>
-        <div class="sub">V5.0 終極規則版</div>
+        <div class="sub">V5.0</div>
         <button onclick="startGameSound(); switchScreen('screen-setup')">開始遊戲</button>
         <button class="btn-alt" onclick="openRules()">遊戲規則</button>
     </div>
@@ -242,7 +242,7 @@
 
     <div id="rule-overlay">
         <div style="text-align:right;"><button class="btn-alt" style="width:60px; margin:0;" onclick="closeRules()">✕</button></div>
-        <h2 style="color:var(--primary); font-size:24px; margin-top:10px;">📜 《節能減碳大富翁》終極平衡版規則</h2>
+        <h2 style="color:var(--primary); font-size:24px; margin-top:10px;">📜 節能減碳大富翁規則</h2>
         <div class="rule-scroll-zone" style="text-align:left; font-size:15px; line-height:1.7; color:#eee; padding-bottom:60px;">
             
             <h3>📖 遊戲背景</h3>
@@ -364,7 +364,7 @@
             players = [];
             drawIndex = 0;
             resetCard();
-            switchScreen('screen-draw');
+            switchScreen('screen-draw'); // ✨【這裡修正了！】從 screen-setup 改成正確的 screen-draw
         }
 
         function resetCard() {
