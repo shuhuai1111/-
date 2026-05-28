@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>《碳息生存戰》V4.1 玻璃感完美版</title>
+    <title>節能減碳大富翁</title>
     <style>
         :root {
             /* 玻璃質感配色 */
@@ -118,14 +118,14 @@
             border: 1px solid var(--glass-border);
         }
         .p-card.eliminated { opacity: 0.3; filter: grayscale(1); }
-        .p-card .p-name { font-weight: bold; font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; }
+        .p-card .p-name { font-weight: bold; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; }
         .p-card .p-val { font-size: 18px; font-weight: bold; margin: 4px 0; }
         .p-card .val-money { color: var(--money-val); }
         .p-card .val-cf { color: var(--cf-val); }
 
         /* 底部操作彈窗 */
         #bottom-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 70%;
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 75%;
             background: rgba(20, 20, 20, 0.9); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
             border-top: 1px solid var(--glass-border); z-index: 100;
             display: none; flex-direction: column; padding: 25px; box-sizing: border-box;
@@ -133,13 +133,13 @@
             border-top-left-radius: 30px; border-top-right-radius: 30px;
         }
         #bottom-panel.active { display: flex; transform: translateY(0); }
-        .panel-close { position: absolute; top: 20px; right: 25px; font-size: 28px; color: #aaa; }
+        .panel-close { position: absolute; top: 20px; right: 25px; font-size: 28px; color: #aaa; cursor: pointer; }
 
-        .input-group { margin: 20px 0; display: flex; justify-content: center; }
-        input[type="number"] { width: 90%; padding: 15px; font-size: 28px; text-align: center; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.1); color: #fff; font-weight: bold; }
+        .input-group { margin: 15px 0; display: flex; justify-content: center; }
+        input[type="number"] { width: 90%; padding: 12px; font-size: 26px; text-align: center; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.1); color: #fff; font-weight: bold; }
 
         .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 400px; margin: 0 auto; }
-        .btn-panel { font-size: 16px; padding: 15px; margin: 0; }
+        .btn-panel { font-size: 16px; padding: 12px; margin: 0; }
 
         /* 規則與特效層 */
         #rule-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); z-index: 200; display: none; overflow-y: auto; padding: 30px; box-sizing: border-box; }
@@ -169,8 +169,8 @@
     <div id="fx-layer"></div>
 
     <div id="screen-cover" class="screen active-screen">
-        <h1>🌍 碳息生存戰</h1>
-        <div class="sub">V4.1 玻璃感完美版</div>
+        <h1>🌍 節能減碳大富翁</h1>
+        <div class="sub">V5.0 終極規則版</div>
         <button onclick="startGameSound(); switchScreen('screen-setup')">開始遊戲</button>
         <button class="btn-alt" onclick="openRules()">遊戲規則</button>
     </div>
@@ -211,11 +211,21 @@
 
     <div id="bottom-panel">
         <div class="panel-close" onclick="closeBottomPanel()">✕</div>
-        <div id="p-panel-info" style="text-align:left; margin-bottom:20px;">
+        <div id="p-panel-info" style="text-align:left; margin-bottom:10px;">
             <div style="font-size:24px; font-weight:bold;"><span id="p-panel-icon"></span> 玩家 <span id="p-panel-num"></span></div>
-            <div id="p-panel-role" style="color:var(--primary); font-size:18px; margin:5px 0;"></div>
-            <div id="p-panel-skill" style="font-size:14px; color:#bbb; min-height:40px; background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;"></div>
+            <div id="p-panel-role" style="color:var(--primary); font-size:18px; margin:3px 0;"></div>
+            <div id="p-panel-skill" style="font-size:14px; color:#bbb; min-height:35px; background:rgba(255,255,255,0.05); padding:8px; border-radius:8px; margin-bottom:10px;"></div>
         </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: stretch; justify-content: center; width: 100%; max-width: 400px; margin: 0 auto 12px auto;">
+            <button class="btn-panel" style="flex: 2; background: linear-gradient(135deg, #9b59b6, #8e44ad); margin: 0; font-size: 15px;" onclick="passStartPoint()">🏁 通過起點 (+1圈 & 領薪)</button>
+            <div style="flex: 1; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; gap: 8px; min-width: 110px;">
+                圈數: <span id="p-panel-laps" style="color: var(--money-val);">1</span>
+                <span style="cursor:pointer; font-size: 12px;" onclick="adjustLap(-1)">➖</span>
+                <span style="cursor:pointer; font-size: 12px;" onclick="adjustLap(1)">➕</span>
+            </div>
+        </div>
+
         <div class="input-group">
             <input type="number" id="val-input" placeholder="輸入數字" inputmode="numeric">
         </div>
@@ -225,61 +235,65 @@
             <button class="btn-panel" style="background:#e74c3c;" onclick="modifyStat('cf', 1)">🏭 加碳</button>
             <button class="btn-panel" style="background:#c0392b;" onclick="modifyStat('cf', -1)">🌱 減碳</button>
         </div>
-        <div id="special-skill-zone" style="margin-top:15px; display:none;">
-            <button class="btn-success" style="width:100%; max-width:400px;" onclick="usePhilanthropist()">🌱 發動【綠色募款】(-$300, -500CF)</button>
+        <div id="special-skill-zone" style="margin-top:12px; display:none;">
+            <button class="btn-success" style="width:100%; max-width:400px; margin:0 auto;" onclick="usePhilanthropist()">🌱 發動【綠色募款】(-$300, -500CF)</button>
         </div>
     </div>
 
     <div id="rule-overlay">
         <div style="text-align:right;"><button class="btn-alt" style="width:60px; margin:0;" onclick="closeRules()">✕</button></div>
-        <h2 style="color:var(--primary); font-size:24px; margin-top:10px;">📜 《碳息生存戰》終極平衡版規則</h2>
+        <h2 style="color:var(--primary); font-size:24px; margin-top:10px;">📜 《節能減碳大富翁》終極平衡版規則</h2>
         <div class="rule-scroll-zone" style="text-align:left; font-size:15px; line-height:1.7; color:#eee; padding-bottom:60px;">
             
+            <h3>📖 遊戲背景</h3>
+            <p>這座城市因快時尚產業的過度製造逐漸走向崩潰。<br>玩家將扮演不同社會角色，在金錢與碳排放之間掙扎求生。<br>在這個世界裡——<br>錢能讓你擴張，但碳排才是真正決定生死的東西。</p>
+
             <h3>⚖️ 勝負條件</h3>
             <p>本遊戲採用「金錢」與「碳排放量（CF）」雙軌制。</p>
             <ul>
-                <li><b style="color:var(--money-val)">💰 金錢：</b>購買、升級與行動資源。</li>
-                <li><b style="color:var(--cf-val)">☠️ 碳排（CF）：</b>玩家生命值。當累積達 <b>10,000 CF</b> 時立即爆點淘汰。</li>
-                <li><b>獲勝方式：</b>成為全場最後唯一存活、未爆碳出局的玩家。</li>
+                <li><b style="color:var(--money-val)">💰 金錢：</b>購買、升級與行動資源（當破產時須暫停一回合，工作來換取現金並增加 100 CF）。</li>
+                <li><b style="color:var(--cf-val)">☠️ 碳排（CF）：</b>玩家生命值。</li>
+            </ul>
+            <h4>💀 淘汰條件</h4>
+            <p>當玩家累積碳排達 <b>10,000 CF</b> 時，立即淘汰。</p>
+            <h4>🏆 勝利條件</h4>
+            <p>成為最後存活或是遊戲<b>第十圈結束</b>碳排放量最低玩家獲勝。</p>
+
+            <h3>👤 角色能力</h3>
+            <ul>
+                <li><b>👨 老百姓｜極致生存型</b><br>起始薪水：$300 | 起始碳排：+200 | 工廠上限：1 間<br>技能【理性消費】：踩到工廠時，受到的碳排傷害減少 200 CF。</li>
+                <li><b>🌟 明星－曾國城｜區域干擾型</b><br>起始薪水：$600 | 起始碳排：+500 | 工廠上限：1 間<br>技能【明星帶貨】：其他玩家只要踩到他工廠的左右相鄰格，強制 +300 CF。</li>
+                <li><b>🚴 黑人｜高機動減碳型</b><br>起始薪水：$400 | 起始碳排：+100 | 工廠上限：1 間<br>技能【運動健將】：擲骰結果為 6 時，該回合自身 -300 CF。</li>
+                <li><b>🌱 慈善家｜主動減碳型</b><br>起始薪水：$400 | 起始碳排：-300 | 工廠上限：1 間<br>技能【綠色募款】：每次經過起點時，可支付 $300，使自身 -500 CF。</li>
+                <li><b>🏭 企業家｜高風險擴張型</b><br>起始薪水：$1,000 | 起始碳排：+700 | 工廠上限：3 間（全場唯一）<br>被動【工業污染】：企業家升級工廠時可以不需支付碳排。每次經過或停留起點時：每擁有 1 間工廠，自身 +200 CF；若持有 3 間工廠，則一次 +600 CF。</li>
             </ul>
 
             <h3>🏭 快時尚工廠系統（共 6 格）</h3>
-            <p>玩家踩到工廠地時，可購買或升級工廠。<b>地主保護機制：</b>地主自己踩到自己的工廠格時，不會增加碳排。</p>
+            <p>玩家踩到工廠地時，可購買或升級工廠。</p>
             <ul>
-                <li><b>Level 1｜初級工廠</b><br>升級需支付：<b style="color:var(--money-val)">$200</b> | 地主自身：<b style="color:var(--cf-val)">+500 CF</b> | 路人踩中：<b style="color:var(--cf-val)">+400 CF</b></li>
-                <li><b>Level 2｜中級工廠</b><br>升級需支付：<b style="color:var(--money-val)">$300</b> | 地主自身：<b style="color:var(--cf-val)">+600 CF</b> | 路人踩中：<b style="color:var(--cf-val)">+700 CF</b></li>
-                <li><b>Level 3｜高級工廠</b><br>升級需支付：<b style="color:var(--money-val)">$400</b> | 地主自身：<b style="color:var(--cf-val)">+800 CF</b> | 路人踩中：<b style="color:var(--cf-val)">+1,000 CF</b></li>
-                <li><b>👑 Level 4｜頂級工廠</b><br>無法直接花錢升級。條件：必須先擁有高級工廠，再透過抽中特定機會／命運卡進化。效果：路人踩中直接爆加 <b style="color:var(--cf-val)">+1,500 CF</b></li>
+                <li><b>Level 1｜初級工廠</b><br>購買價格：$200 +500 CF | 過路費：增加 400 CF 支付 $200</li>
+                <li><b>Level 2｜中級工廠</b><br>升級價格：$300 +600 CF | 過路費：增加 700 CF 支付 $400</li>
+                <li><b>Level 3｜高級工廠</b><br>升級價格：$400 +800 CF | 過路費：增加 1,000 CF 支付 $800</li>
+                <li><b>👑 Level 4｜頂級工廠</b><br>無法直接升級取得。條件：必須先擁有高級工廠，再抽中特定命運卡才能進化。過路費：增加 1,500 CF 支付 $1,200</li>
             </ul>
 
-            <h3>🚔 環保局（監獄）雙軌系統</h3>
-            <p>為防玩家惡意躲監獄避戰，入獄分為兩種性質：</p>
-            <h4>軌道 A｜大自然的最後警告（一生僅限一次）</h4>
-            <p>當任何玩家的碳排放量<b>首次達到或超過 7,000 CF</b> 時，在大自然反撲下強制立即入獄。效果：強制入獄 2 回合、無法領取薪水、旗下工廠全面停工。<b>唯一福利：</b>坐牢期間，每回合可選擇支付 <b style="color:var(--money-val)">$200</b> 進行環保贖罪，使自身 <b style="color:var(--cf-val)">-500 CF</b>（若不付錢則維持不變）。</p>
+            <h3>🗺️ 地圖格子機制（共 26 格）</h3>
+            <h4>🚔 環保局（監獄）系統</h4>
+            
+            <h4>軌道 A｜大自然的最後警告（僅一次）</h4>
+            <p><b>觸發條件：</b>玩家碳排首次達到或超過 7,000 CF。<br><b>效果：</b>立即入獄 2 回合、無法領取薪水、所有工廠停工（對手踩到你的工廠時不會增加碳排）。<br><b>🌱 唯一減碳機會：</b>坐牢期間，每回合可支付 $200：有付錢自身 -500 CF，不付錢不變化。<br>⚠️ 注意：此警告一生只有一次。若之後碳排再次超過 7,000 CF，將不再觸發保護機制。</p>
+
             <h4>軌道 B｜違規查緝入獄</h4>
-            <p>因踩到格子或抽到「立即前往環保局」等事件卡而入獄。效果：入獄 2 回合、無法領薪、工廠停工。此狀態下<b>無法</b>付錢減碳。</p>
+            <p><b>觸發條件：</b>玩家碳排超過 4000 CF 停在到監獄格上。<br><b>效果：</b>入獄 1 回合、無法領薪、工廠全面停工。<br>❌ 無減碳福利：此類入獄無法付費減碳，純屬懲罰與拖延節奏。</p>
 
-            <h3>🛡️ 二手古著店（防禦護盾）</h3>
-            <p>玩家可在古著店格支付 <b style="color:var(--money-val)">$400</b> 購買一件古著護盾（每人限存一件，一次性消耗）。<b>效果：</b>當下次不幸踩到別人的工廠時，可自動消耗護盾，完全抵銷該次工廠帶來的全部碳排傷害！</p>
+            <h4>👕 二手衣</h4>
+            <p><b>觸發條件：</b>踩到衣服格上，回答有關衣服的問題，回答對之後，支付 $400 可獲得一件二手衣護盾。<br><b>效果：</b>可直接抵銷該次全部碳排傷害（一次性道具）。</p>
             
-            <h3>✈️ 飛機（航空港格）</h3>
-            <p>移動福利格。踩中後可支付 <b style="color:var(--money-val)">$300</b> 購買機票，於下回合直接飛往地圖上的任意指定格子。<b>代價：</b>由於搭乘飛機高污染，自身必須 <b style="color:var(--cf-val)">+400 CF</b>。</p>
+            <h4>✈️ 飛機（航空站）</h4>
+            <p><b>效果：</b>支付 $300，可飛往任意格子。<br><b>代價：</b>自身 +400 CF（現金不足無法使用）。</p>
             
-            <h3>🔹 其他地圖功能格</h3>
-            <ul>
-                <li><b>🛢️ 石油格：</b>開採石油獲得高額回報，直接發放金錢 <b style="color:var(--money-val)">+$500</b>，但代價是自身巨大污染 <b style="color:var(--cf-val)">+1,000 CF</b>。</li>
-                <li><b>🛍️ 環保袋格：</b>實踐減塑生活，自身碳排放量直接 <b style="color:var(--cf-val)">-800 CF</b>。</li>
-                <li><b>❓ 機會／命運格：</b>抽取事件卡，可能包含工廠環保稅、強制入獄、工廠進化、金錢巨變等隨機事件。</li>
-            </ul>
-
-            <h3>👤 角色技能一覽</h3>
-            <ul>
-                <li><b>👦 老百姓：</b>初始 $300。上限 1 間工廠。【理性消費】踩到他人工廠時，受到的碳排傷害固定減免 200 CF。</li>
-                <li><b>🌟 曾國城：</b>初始 $600。上限 1 間工廠。【明星帶貨】當有其他路人踩到與你工廠相鄰的格子時，該路人強制 +300 CF。</li>
-                <li><b>🚴 黑人：</b>初始 $400。上限 1 間工廠。【低碳通勤】自身回合擲骰結果為 5 或 6 時，心情愉悅使自身 -300 CF。</li>
-                <li><b>🌱 慈善家：</b>初始 $400。上限 1 間工廠。【綠色募款】過起點可點下方按鈕支付 $300，使自身 -500 CF。</li>
-                <li><b>💼 企業家：</b>初始 $1000。全場唯一工廠上限 3 間。【工業污染】過起點每擁有一間工廠自身必須 +200 CF（若蓋滿 3 間則固定 +600 CF）。</li>
-            </ul>
+            <h4>起點</h4>
+            <p><b>效果：</b>經過起點即可獲得 $500 (企業家 $700 )。</p>
         </div>
     </div>
 
@@ -320,13 +334,13 @@
 
         function startGameSound() { audioCtx.resume(); sounds.click(); }
 
-        // 遊戲數據
+        // ⚖️ 角色資料庫
         const roleDB = [
-            { icon: "👦", name: "老百姓", money: 300, skill: "【理性消費】踩工廠時CF傷-200" },
-            { icon: "🌟", name: "曾國城", money: 600, skill: "【明星帶貨】別人踩相鄰+300CF" },
-            { icon: "🚴", name: "黑人", money: 400, skill: "【低碳通勤】擲骰5/6時自身-300CF" },
-            { icon: "🌱", name: "慈善家", money: 400, skill: "【綠色募款】支付$300減500CF" },
-            { icon: "💼", name: "企業家", money: 1000, skill: "【工業污染】每工廠自身+200CF" }
+            { icon: "👨", name: "老百姓", money: 300, initCf: 200, skill: "【理性消費】踩工廠時CF傷-200" },
+            { icon: "🌟", name: "曾國城", money: 600, initCf: 500, skill: "【明星帶貨】別人踩相鄰+300CF" },
+            { icon: "🚴", name: "黑人", money: 400, initCf: 100, skill: "【運動健將】擲骰為6時自身-300CF" },
+            { icon: "🌱", name: "慈善家", money: 400, initCf: -300, skill: "【綠色募款】過起點可支付$300減500CF" },
+            { icon: "🏭", name: "企業家", money: 1000, initCf: 700, skill: "【工業污染】過起點每工廠自身+200CF，免排碳升級" }
         ];
 
         let players = [];
@@ -356,10 +370,7 @@
         function resetCard() {
             const card = document.getElementById('main-draw-card');
             card.classList.remove('spinning', 'flipped');
-            
-            // 🔥 【這行是關鍵修正】重置卡片時，把正面的前一個角色清空！
             document.getElementById('card-front-content').innerHTML = '';
-
             document.getElementById('draw-title').innerText = `玩家 ${drawIndex + 1} 抽選`;
             document.getElementById('draw-hint').style.display = 'block';
             document.getElementById('draw-hint').innerText = "點擊卡片開始命運旋轉";
@@ -389,7 +400,8 @@
                     id: drawIndex,
                     role: role,
                     money: role.money,
-                    cf: 0,
+                    cf: role.initCf,
+                    laps: 1,
                     jailedOnce: false,
                     dead: false
                 });
@@ -405,9 +417,7 @@
             }, 3000);
         }
 
-        function prepareNextDraw() {
-            resetCard();
-        }
+        function prepareNextDraw() { resetCard(); }
 
         // 遊戲控制
         function goToGame() {
@@ -423,7 +433,10 @@
                 const card = document.createElement('div');
                 card.className = `p-card glass-card ${p.dead ? 'eliminated' : ''}`;
                 card.innerHTML = `
-                    <div class="p-name">${p.role.icon} P${idx+1} ${p.role.name}</div>
+                    <div class="p-name">
+                        <span>${p.role.icon} P${idx+1} ${p.role.name}</span>
+                        <span style="margin-left:auto; font-size:12px; background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:10px;">🏁 第 ${p.laps}/10 圈</span>
+                    </div>
                     <div class="p-val val-money">💰 $${p.money}</div>
                     <div class="p-val val-cf">🏭 ${p.cf} CF</div>
                 `;
@@ -439,6 +452,7 @@
             document.getElementById('p-panel-icon').innerText = p.role.icon;
             document.getElementById('p-panel-role').innerText = p.role.name;
             document.getElementById('p-panel-skill').innerText = p.role.skill;
+            document.getElementById('p-panel-laps').innerText = p.laps;
             document.getElementById('val-input').value = "";
             document.getElementById('special-skill-zone').style.display = (p.role.name === "慈善家" && !p.dead) ? 'block' : 'none';
             
@@ -446,8 +460,39 @@
             sounds.click();
         }
 
-        function closeBottomPanel() {
-            document.getElementById('bottom-panel').classList.remove('active');
+        function closeBottomPanel() { document.getElementById('bottom-panel').classList.remove('active'); }
+
+        // 通過起點自動化
+        function passStartPoint() {
+            const p = players[activeIdx];
+            if(p.dead) return;
+            
+            p.laps++;
+            let salary = (p.role.name === "🏭 企業家" || p.role.name === "企業家") ? 700 : 500;
+            p.money += salary;
+            
+            document.getElementById('p-panel-laps').innerText = p.laps;
+            renderStatusGrid();
+            updateEnv();
+            sounds.statUp();
+            
+            let msg = `P${activeIdx+1} 成功通過起點！\n圈數已更新：第 ${p.laps} 圈\n自動發放薪水：+$${salary}`;
+            
+            if(p.role.name === "🏭 企業家" || p.role.name === "企業家") {
+                msg += `\n\n⚠️ 觸發被動【工業污染】！\n請根據目前擁有的工廠數量，手動使用下方按鈕為其加碳（每間 +200 CF，滿 3 間直接 +600 CF）。`;
+            } else if(p.role.name === "慈善家") {
+                msg += `\n\n💡 觸發技能【綠色募款】！\n此時可以點擊下方的綠色按鈕支付 $300 進行主動減碳。`;
+            }
+            alert(msg);
+        }
+
+        function adjustLap(dir) {
+            const p = players[activeIdx];
+            if(p.dead) return;
+            p.laps = Math.max(1, p.laps + dir);
+            document.getElementById('p-panel-laps').innerText = p.laps;
+            renderStatusGrid();
+            sounds.click();
         }
 
         function modifyStat(type, dir) {
@@ -460,7 +505,7 @@
                 dir > 0 ? sounds.statUp() : sounds.statDown();
             } else {
                 const old = p.cf;
-                p.cf = Math.max(0, p.cf + (val * dir));
+                p.cf = p.cf + (val * dir);
                 dir > 0 ? sounds.statUp() : sounds.statDown();
                 checkLogic(p, old);
             }
@@ -473,12 +518,14 @@
             const p = players[activeIdx];
             if(p.money >= 300) {
                 p.money -= 300;
-                p.cf = Math.max(0, p.cf - 500);
+                p.cf = p.cf - 500;
                 playFX('<div class="heal-fx">🌱✨</div>', 1500);
                 renderStatusGrid();
                 updateEnv();
                 closeBottomPanel();
                 sounds.statUp();
+            } else {
+                alert("現金不足，無法發動綠色募款！");
             }
         }
 
